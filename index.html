@@ -58,10 +58,10 @@ var getDistance = function(p1, p2) {
 
 function initialize() {
   directionsDisplay = new google.maps.DirectionsRenderer();
-  var chicago = new google.maps.LatLng(41.850033, -87.6500523);
+  var geneva = new google.maps.LatLng(46.2000, 6.1500);
   var mapOptions = {
     zoom:7,
-    center: chicago
+    center: geneva
   };
   map = new google.maps.Map(document.getElementById('map-canvas'), mapOptions);
   directionsDisplay.setMap(map);
@@ -89,20 +89,19 @@ function calcRoute() {
 		  for (var si = 0; si < steps.length; si++) {
 		    //console.log(steps[si]);
 		    var start_location = steps[si].start_location;
-			//if (previousLocation !== null) {
-			    if (previousLocation === null || getDistance(previousLocation, start_location) > 10000) {
+			  if (previousLocation === null || getDistance(previousLocation, start_location) > 10000) {
 				  console.log(start_location.lng() + ", " + start_location.lat() + " --> " + previousLocation);
-				  $.getJSON('http://api.openweathermap.org/data/2.5/find?lat=' + 
-				  start_location.lat() + '&lon=' + start_location.lng() + '&cnt=1', function(data) {
+				  $.getJSON('http://api.openweathermap.org/data/2.5/weather?lat=' + 
+				       start_location.lat() + '&lon=' + start_location.lng() + '', function(data) {
 			  
-				  var weather = data.list[0].weather[0];
-				  //console.log(weather);
-				  $('#steps_table').append('<tr><td>' + data.list[0].name + ' <img src="http://openweathermap.org/img/w/' + weather.icon + '.png"/></td></tr>');
-				  //var obj = JSON.parse(data);			  				  
+				    var weather = data.list[0].weather[0];
+				    //console.log(weather);
+				    $('#steps_table').append('<tr><td>' + data.list[0].name + ' <img src="http://openweathermap.org/img/w/' + weather.icon + '.png"/></td></tr>');
+				    //var obj = JSON.parse(data);			  				  
 				  });
 				  previousLocation = start_location;
 				}			
-			
+			  
 		    //$('#steps_table').append('<tr><td>' + start_location.lat() + '</td></tr>');
 		    //console.log(steps[si].start_location);
 			//}
