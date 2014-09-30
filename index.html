@@ -6,35 +6,19 @@
     <title>Directions service</title>
     <style>
       #map-canvas {
-	    position: absolute;
-	    top: 5px;
-		left: 300px;
-        height: 700px;
-		width: 700px;
+	      height: 700px;
+		    width: 700px;
         margin: 0px;
         padding: 0px
       }
-	  #copyright_notice {
-	    position: absolute;
-		top: 1px;
-	  }
-      #panel {
-        position: absolute;
-        top: 25px;    
-        width: 280px;		
-        /* margin-left: -180px; */
-        /* z-index: 5; */
-        background-color: #fff;
-        padding: 1px;
-        border: 1px solid #999;
-      }
-	  #steps {
-	    position: relative;
-		top: 15px;
-	  }
+	  
+    
     </style>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
     <script src="https://maps.googleapis.com/maps/api/js?v=3.exp"></script>
-	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+	  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
     <script>
 var directionsDisplay;
 var directionsService = new google.maps.DirectionsService();
@@ -79,7 +63,7 @@ function calcRoute() {
     if (status == google.maps.DirectionsStatus.OK) {
 	  var previousLocation = null;
 	  clearSteps();
-	  $('#steps').append('<table id="steps_table"></table>');
+	  $('#steps').append('<ul id="steps_table" class="list-group"></ul');
 	  for (var i = 0; i < response.routes.length; i++) {
 	    var route = response.routes[i];
 		document.getElementById('copyright_notice').innerHTML = route.copyrights;
@@ -91,12 +75,12 @@ function calcRoute() {
 		    var start_location = steps[si].start_location;
 			  if (previousLocation === null || getDistance(previousLocation, start_location) > 10000) {
 				  console.log(start_location.lng() + ", " + start_location.lat() + " --> " + previousLocation);
-				  $.getJSON('http://api.openweathermap.org/data/2.5/weather?lat=' + 
+				  $.getJSON('http://api.openweathermap.org/data/2.5/find?lat=' + 
 				       start_location.lat() + '&lon=' + start_location.lng() + '', function(data) {
 			  
 				    var weather = data.list[0].weather[0];
 				    //console.log(weather);
-				    $('#steps_table').append('<tr><td>' + data.list[0].name + ' <img src="http://openweathermap.org/img/w/' + weather.icon + '.png"/></td></tr>');
+				    $('#steps_table').append('<li class="list-group-item">' + data.list[0].name + ' <img src="http://openweathermap.org/img/w/' + weather.icon + '.png"/></li>');
 				    //var obj = JSON.parse(data);			  				  
 				  });
 				  previousLocation = start_location;
@@ -126,12 +110,41 @@ google.maps.event.addDomListener(window, 'load', initialize);
     </script>
   </head>
   <body>
-    <div id="copyright_notice"></div>
-    <div id="panel">
-	  <button onclick="calcRoute();">Calc</button>
-	  <div id="steps">
-	  </div>
-	</div>
-    <div id="map-canvas"></div>
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-md-3">
+          <div class="container-fluid">
+            <div class="row">
+              <div class="col-md-12">
+                <div id="copyright_notice"></div>
+              </div>
+            </div>
+            <div class="row">
+              <label for="start">Start:</label> <input type="text" id="start"/>
+
+            </div>
+            <div class="row">
+               <label for="end">End:</label> <input type="text" id="end"/>
+            </div>
+            <div class="row">
+              <div class="col-md-12">
+                <div id="panel">
+                  <button onclick="calcRoute();">Calc</button>
+                  <div id="steps">
+                  </div>
+              </div>
+            </div>
+          </div>
+          
+          
+  </div>
+        </div>
+        <div class="col-md-9"><div id="map-canvas"></div></div>
+      </div>
+
+    
+    
+    
+    </div>
   </body>
 </html>
