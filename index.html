@@ -63,7 +63,8 @@ body{
     </style>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
-    <script src="https://maps.googleapis.com/maps/api/js?v=3.exp"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&libraries=places"></script>
+
 	  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
     <script>
@@ -87,6 +88,9 @@ var getDistance = function(p1, p2) {
   return d; // returns the distance in meter
 };
 
+var startLocation;
+var endLocation;
+
 function initialize() {
   directionsDisplay = new google.maps.DirectionsRenderer();
   var geneva = new google.maps.LatLng(46.2000, 6.1500);
@@ -96,11 +100,25 @@ function initialize() {
   };
   map = new google.maps.Map(document.getElementById('map-canvas'), mapOptions);
   directionsDisplay.setMap(map);
+  var autocompleteStart = new google.maps.places.Autocomplete($('#start')[0], {types: ['geocode']});
+  google.maps.event.addListener(autocompleteStart, 'place_changed', function() {
+    startLocation = fillInLocation(autocompleteStart);
+  });
+  var autocompleteEnd = new google.maps.places.Autocomplete($('#end')[0], {types: ['geocode']});
+  google.maps.event.addListener(autocompleteEnd, 'place_changed', function() {
+    endLocation = fillInLocation(autocompleteEnd);
+  });
+}
+
+function fillInLocation(autocomplete) {
+  var place = autocomplete.getPlace();
+
+  return place.geometry.location;
 }
 
 function calcRoute() {
-  var start = new google.maps.LatLng(46.2000, 6.1500);//document.getElementById('start').value;
-  var end = new google.maps.LatLng(46.9500, 7.4500);//document.getElementById('end').value;
+  var start = startLocation;
+  var end = endLocation;
   var request = {
       origin:start,
       destination:end,
@@ -168,8 +186,8 @@ google.maps.event.addDomListener(window, 'load', initialize);
     <div id="map-canvas"></div>
     <div class="container-fluid" id="main">
       <div class="row">
-        <div class="col-md-3" id="left">
-          <h3>Parameters</h3>
+        <div class="col-md-4" id="left">
+          <h3>Find your route</h3>
           <div class="container-fluid">
             <div class="row">
               <div class="col-md-12">
@@ -177,19 +195,17 @@ google.maps.event.addDomListener(window, 'load', initialize);
               </div>
             </div>
             <div class="row">
-              <div class="panel panel-default">
-                <div class="panel-heading"><a href="">Item heading</a></div>
-              </div>
-              <label for="start">Start:</label> <input type="text" id="start"/>
+            
+              <input type="text" id="start" placeholder="Starting location" size="80"/>
 
             </div>
             <div class="row">
-               <label for="end">End:</label> <input type="text" id="end"/>
+               <input type="text" id="end" placeholder="Ending location" size="80"/>
             </div>
             <div class="row">
               <div class="col-md-12">
                 <div id="panel">
-                  <button onclick="calcRoute();">Calc</button>
+                  <button onclick="calcRoute();" class="btn-primary">Calculate route and weather</button>
                   <div id="steps">
                   </div>
               </div>
