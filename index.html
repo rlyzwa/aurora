@@ -138,18 +138,43 @@ function calcRoute() {
 		  for (var si = 0; si < steps.length; si++) {
 		    //console.log(steps[si]);
 		    var start_location = steps[si].start_location;
-			  if (previousLocation === null || getDistance(previousLocation, start_location) > 10000) {
-				  console.log(start_location.lng() + ", " + start_location.lat() + " --> " + previousLocation);
-				  $.getJSON('http://api.openweathermap.org/data/2.5/find?lat=' + 
-				       start_location.lat() + '&lon=' + start_location.lng() + '', function(data) {
-			  
-				    var weather = data.list[0].weather[0];
-				    //console.log(weather);
-				    $('#steps_table').append('<li class="list-group-item">' + data.list[0].name + ' <img src="http://openweathermap.org/img/w/' + weather.icon + '.png"/></li>');
-				    //var obj = JSON.parse(data);			  				  
-				  });
-				  previousLocation = start_location;
-				}			
+        //console.log(steps[si].path);
+        for (var sx = 0; sx < steps[si].path.length; sx++) {
+          if (previousLocation === null || getDistance(previousLocation, steps[si].path[sx]) > 10000) {
+            (function(loc) { 
+              //console.log(start_location.lng() + ", " + start_location.lat() + " --> " + previousLocation);
+              $.getJSON('http://api.openweathermap.org/data/2.5/find?lat=' + 
+                loc.lat() + '&lon=' + loc.lng() + '', function(data) {
+        
+              var weather = data.list[0].weather[0];
+              //console.log(weather);
+              $('#steps_table').append('<li class="list-group-item">' + data.list[0].name + ' <img src="http://openweathermap.org/img/w/' + weather.icon + '.png"/></li>');
+              var marker = new google.maps.Marker({
+                position: loc,
+                map: map,
+                title: data.list[0].name
+              });
+              google.maps.event.addListener(marker, 'click', function() {
+                var infowindow = new google.maps.InfoWindow({
+                  content: "<b>" + data.list[0].name + "</b"
+                });
+                infowindow.open(map, marker);
+                console.log(data);
+              });
+              //var obj = JSON.parse(data);                 
+            });
+            })(steps[si].path[sx]);
+          previousLocation = steps[si].path[sx];
+        }   
+          /*
+          new google.maps.Marker({
+            position: steps[si].path[sx],
+            map: map,
+            title: 'point ' + j + si + sx 
+          });
+          */
+        }
+			  			
 			  
 		    //$('#steps_table').append('<tr><td>' + start_location.lat() + '</td></tr>');
 		    //console.log(steps[si].start_location);
