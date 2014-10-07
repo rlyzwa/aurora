@@ -3,7 +3,7 @@
   <head>
     <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
     <meta charset="utf-8">
-    <title>Directions service</title>
+    <title>SafeRoute</title>
     <style>
       html,body{
     height:100%;
@@ -116,9 +116,43 @@ function fillInLocation(autocomplete) {
   return place.geometry.location;
 }
 
+var mutex = 0;
+var routePoints = [];
+
+function addRoutePoint(loc) {
+  routePoints.push({location: loc});
+  mutex++;
+}
+
+function updateRoutePoint(pos, name, icon) {
+  var routePoint = routePoints[pos];
+  routePoint.name = name;
+  routePoint.icon = icon;
+  mutex--;
+
+  if (mutex === 0) {
+    console.log('mutex 0');
+    $.each(routePoints, function(index, routePoint) {
+      $('#steps_table').append('<li class="list-group-item">' + routePoint.name + ' <img src="' +  routePoint.icon + '"/></li>');
+      var marker = new google.maps.Marker({
+                    position: routePoint.location,
+                    map: map,
+                    title: routePoint.name
+                  });
+      google.maps.event.addListener(marker, 'click', function() {
+                    var infowindow = new google.maps.InfoWindow({
+                      content: "<b>" + routePoint.name + '</b> <img src="' +  routePoint.icon + '"/>'
+                    });
+                    infowindow.open(map, marker);
+                  });
+    });
+  }
+}
+
 function calcRoute() {
   var start = startLocation;
   var end = endLocation;
+  var distanceBetweenPoints = $("#distanceBetweenPoints").val();
   var request = {
       origin:start,
       destination:end,
@@ -140,30 +174,22 @@ function calcRoute() {
 		    var start_location = steps[si].start_location;
         //console.log(steps[si].path);
         for (var sx = 0; sx < steps[si].path.length; sx++) {
-          if (previousLocation === null || getDistance(previousLocation, steps[si].path[sx]) > 10000) {
-            (function(loc) { 
+          if (previousLocation === null || getDistance(previousLocation, steps[si].path[sx]) > 1000 * distanceBetweenPoints) {
+            
+            (function(loc, position) { 
+              addRoutePoint(loc);
               //console.log(start_location.lng() + ", " + start_location.lat() + " --> " + previousLocation);
               $.getJSON('http://api.openweathermap.org/data/2.5/find?lat=' + 
                 loc.lat() + '&lon=' + loc.lng() + '', function(data) {
-        
-              var weather = data.list[0].weather[0];
-              //console.log(weather);
-              $('#steps_table').append('<li class="list-group-item">' + data.list[0].name + ' <img src="http://openweathermap.org/img/w/' + weather.icon + '.png"/></li>');
-              var marker = new google.maps.Marker({
-                position: loc,
-                map: map,
-                title: data.list[0].name
-              });
-              google.maps.event.addListener(marker, 'click', function() {
-                var infowindow = new google.maps.InfoWindow({
-                  content: "<b>" + data.list[0].name + "</b"
+                 
+                  var weather = data.list[0].weather[0];
+                  //console.log(weather);
+                  
+                  
+                  
+                  updateRoutePoint(position, data.list[0].name, 'http://openweathermap.org/img/w/' + weather.icon + '.png');
                 });
-                infowindow.open(map, marker);
-                console.log(data);
-              });
-              //var obj = JSON.parse(data);                 
-            });
-            })(steps[si].path[sx]);
+            })(steps[si].path[sx], mutex);
           previousLocation = steps[si].path[sx];
         }   
           /*
@@ -225,7 +251,10 @@ google.maps.event.addDomListener(window, 'load', initialize);
 
             </div>
             <div class="row">
-               <input type="text" id="end" placeholder="Ending location" size="80"/>
+              <input type="text" id="end" placeholder="Ending location" size="80"/>
+            </div>
+            <div class="row">
+              <input type="number" id="distanceBetweenPoints" placeholder="Distance in km between points"/>
             </div>
             <div class="row">
               <div class="col-md-12">
