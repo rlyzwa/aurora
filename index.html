@@ -139,12 +139,12 @@ function updateRoutePoint(pos, name, icon) {
                     map: map,
                     title: routePoint.name
                   });
-      google.maps.event.addListener(marker, 'click', function() {
+      //google.maps.event.addListener(marker, 'click', function() {
                     var infowindow = new google.maps.InfoWindow({
                       content: "<b>" + routePoint.name + '</b> <img src="' +  routePoint.icon + '"/>'
                     });
                     infowindow.open(map, marker);
-                  });
+//                  });
     });
   }
 }
