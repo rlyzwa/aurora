@@ -1,281 +1,333 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
-    <meta charset="utf-8">
-    <title>SafeRoute</title>
-    <style>
-      html,body{
-    height:100%;
-}
+<head>
+<meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+<meta charset="utf-8">
+<title>SafeRoute</title>
+<style>
+  html, body {
+    height: 100%;
+  }
 
-body{
-    padding-top:50px; /*padding for navbar*/
-}
+  body {
+    padding-top: 50px; /*padding for navbar*/
+  }
 
-.navbar-custom .icon-bar {
-  background-color:#fff;
-}
+  .navbar-custom .icon-bar {
+    background-color: #fff;
+  }
 
-.navbar-custom {
-  background-color: #168ccc;
-    color:#fff;
-}
+  .navbar-custom {
+    background-color: #168ccc;
+    color: #fff;
+  }
 
-.navbar-custom li>a:hover,.navbar-custom li>a:focus {
-  background-color:#49bfff;
-}
+  .navbar-custom li > a:hover, .navbar-custom li > a:focus {
+    background-color: #49bfff;
+  }
 
-.navbar-custom a{
-    color:#fefefe;
-}
+  .navbar-custom a {
+    color: #fefefe;
+  }
 
-.navbar-custom .form-control:focus {
-  border-color: #49bfff;
-  outline: 0;
-  -webkit-box-shadow: inset 0 0 0;
-  box-shadow: inset 0 0 0;
-}
+  .navbar-custom .form-control:focus {
+    border-color: #49bfff;
+    outline: 0;
+    -webkit-box-shadow: inset 0 0 0;
+    box-shadow: inset 0 0 0;
+  }
 
-#main, #main>.row {
-  height:100%;
-}
+  #main, #main > .row {
+    height: 100%;
+  }
 
-#main>.row {
-    overflow-y:scroll;
-}
+  #main > .row {
+    overflow-y: scroll;
+  }
 
-#left {
-  height:100%;
-}
+  #left {
+    height: 100%;
+  }
 
-#map-canvas {
-  width:66.66666%;
-    height:calc(100% - 0);
-    position:absolute;
-    right:16px;
-    top:50px;
-    bottom:0;
-    overflow:hidden;
-}
-	  
-    
-    </style>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
-    <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&libraries=places"></script>
+  #map-canvas {
+    width: 66.66666%;
+    height: calc(100% - 0);
+    position: absolute;
+    right: 16px;
+    top: 50px;
+    bottom: 0;
+    overflow: hidden;
+  }
 
-	  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
-    <script>
-var directionsDisplay;
-var directionsService = new google.maps.DirectionsService();
-var map;
 
-var rad = function(x) {
-  return x * Math.PI / 180;
-};
+</style>
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
+<script src="https://maps.googleapis.com/maps/api/js?v=3.exp&libraries=places"></script>
 
-var getDistance = function(p1, p2) {
-  var R = 6378137; // Earth’s mean radius in meter
-  var dLat = rad(p2.lat() - p1.lat());
-  var dLong = rad(p2.lng() - p1.lng());
-  var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(rad(p1.lat())) * Math.cos(rad(p2.lat())) *
-    Math.sin(dLong / 2) * Math.sin(dLong / 2);
-  var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  var d = R * c;
-  return d; // returns the distance in meter
-};
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+<script>
+  var directionsDisplay;
+  var directionsService = new google.maps.DirectionsService();
+  var map;
 
-var startLocation;
-var endLocation;
-
-function initialize() {
-  directionsDisplay = new google.maps.DirectionsRenderer();
-  var geneva = new google.maps.LatLng(46.2000, 6.1500);
-  var mapOptions = {
-    zoom:7,
-    center: geneva
+  var rad = function (x) {
+    return x * Math.PI / 180;
   };
-  map = new google.maps.Map(document.getElementById('map-canvas'), mapOptions);
-  directionsDisplay.setMap(map);
-  var autocompleteStart = new google.maps.places.Autocomplete($('#start')[0], {types: ['geocode']});
-  google.maps.event.addListener(autocompleteStart, 'place_changed', function() {
-    startLocation = fillInLocation(autocompleteStart);
-  });
-  var autocompleteEnd = new google.maps.places.Autocomplete($('#end')[0], {types: ['geocode']});
-  google.maps.event.addListener(autocompleteEnd, 'place_changed', function() {
-    endLocation = fillInLocation(autocompleteEnd);
-  });
-}
 
-function fillInLocation(autocomplete) {
-  var place = autocomplete.getPlace();
+  var getDistance = function (p1, p2) {
+    var R = 6378137; // Earth’s mean radius in meter
+    var dLat = rad(p2.lat() - p1.lat());
+    var dLong = rad(p2.lng() - p1.lng());
+    var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(rad(p1.lat())) * Math.cos(rad(p2.lat())) *
+        Math.sin(dLong / 2) * Math.sin(dLong / 2);
+    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    var d = R * c;
+    return d; // returns the distance in meter
+  };
 
-  return place.geometry.location;
-}
+  var startLocation;
+  var endLocation;
 
-var mutex = 0;
-var routePoints = [];
-
-function addRoutePoint(loc) {
-  routePoints.push({location: loc});
-  mutex++;
-}
-
-function updateRoutePoint(pos, name, icon) {
-  var routePoint = routePoints[pos];
-  routePoint.name = name;
-  routePoint.icon = icon;
-  mutex--;
-
-  if (mutex === 0) {
-    console.log('mutex 0');
-    $.each(routePoints, function(index, routePoint) {
-      $('#steps_table').append('<li class="list-group-item">' + routePoint.name + ' <img src="' +  routePoint.icon + '"/></li>');
-      var marker = new google.maps.Marker({
-                    position: routePoint.location,
-                    map: map,
-                    title: routePoint.name
-                  });
-      google.maps.event.addListener(marker, 'click', function() {
-                    var infowindow = new google.maps.InfoWindow({
-                      content: "<b>" + routePoint.name + '</b> <img src="' +  routePoint.icon + '"/>'
-                    });
-                    infowindow.open(map, marker);
-                  });
+  function initialize() {
+    directionsDisplay = new google.maps.DirectionsRenderer();
+    var geneva = new google.maps.LatLng(46.2000, 6.1500);
+    var mapOptions = {
+      zoom: 7,
+      center: geneva
+    };
+    map = new google.maps.Map(document.getElementById('map-canvas'), mapOptions);
+    directionsDisplay.setMap(map);
+    var autocompleteStart = new google.maps.places.Autocomplete($('#start')[0], {types: ['geocode']});
+    google.maps.event.addListener(autocompleteStart, 'place_changed', function () {
+      startLocation = fillInLocation(autocompleteStart);
+    });
+    var autocompleteEnd = new google.maps.places.Autocomplete($('#end')[0], {types: ['geocode']});
+    google.maps.event.addListener(autocompleteEnd, 'place_changed', function () {
+      endLocation = fillInLocation(autocompleteEnd);
     });
   }
-}
 
-function calcRoute() {
-  var start = startLocation;
-  var end = endLocation;
-  var distanceBetweenPoints = $("#distanceBetweenPoints").val();
-  var request = {
-      origin:start,
-      destination:end,
-      travelMode: google.maps.TravelMode.DRIVING
-  };
-  directionsService.route(request, function(response, status) {
-    if (status == google.maps.DirectionsStatus.OK) {
-	  var previousLocation = null;
-	  clearSteps();
-	  $('#steps').append('<ul id="steps_table" class="list-group"></ul');
-	  for (var i = 0; i < response.routes.length; i++) {
-	    var route = response.routes[i];
-		document.getElementById('copyright_notice').innerHTML = route.copyrights;
-		//console.log(route.legs);
-		for (var j = 0; j < route.legs.length; j++) {
-		  var steps = route.legs[j].steps;
-		  for (var si = 0; si < steps.length; si++) {
-		    //console.log(steps[si]);
-		    var start_location = steps[si].start_location;
-        //console.log(steps[si].path);
-        for (var sx = 0; sx < steps[si].path.length; sx++) {
-          if (previousLocation === null || getDistance(previousLocation, steps[si].path[sx]) > 1000 * distanceBetweenPoints) {
-            
-            (function(loc, position) { 
-              addRoutePoint(loc);
-              //console.log(start_location.lng() + ", " + start_location.lat() + " --> " + previousLocation);
-              $.getJSON('http://api.openweathermap.org/data/2.5/find?lat=' + 
-                loc.lat() + '&lon=' + loc.lng() + '', function(data) {
-                 
-                  var weather = data.list[0].weather[0];
-                  //console.log(weather);
-                  
-                  
-                  
-                  updateRoutePoint(position, data.list[0].name, 'http://openweathermap.org/img/w/' + weather.icon + '.png');
-                });
-            })(steps[si].path[sx], mutex);
-          previousLocation = steps[si].path[sx];
-        }   
-          /*
-          new google.maps.Marker({
-            position: steps[si].path[sx],
-            map: map,
-            title: 'point ' + j + si + sx 
+  function fillInLocation(autocomplete) {
+    var place = autocomplete.getPlace();
+
+    return place.geometry.location;
+  }
+
+  var mutex = 0;
+  var routePoints = [];
+
+  function addRoutePoint(loc) {
+    routePoints.push({location: loc});
+    mutex++;
+  }
+
+  function updateRoutePoint(pos, name, icon) {
+    var routePoint = routePoints[pos];
+    routePoint.name = name;
+    routePoint.icon = icon;
+    mutex--;
+
+    if (mutex === 0) {
+      console.log('mutex 0');
+      $.each(routePoints, function (index, routePoint) {
+        $('#steps_table').append('<li class="list-group-item">' + routePoint.name + ' <img src="' + routePoint.icon + '"/></li>');
+        var marker = new google.maps.Marker({
+          position: routePoint.location,
+          map: map,
+          title: routePoint.name
+        });
+        google.maps.event.addListener(marker, 'click', function () {
+          var infowindow = new google.maps.InfoWindow({
+            content: "<b>" + routePoint.name + '</b> <img src="' + routePoint.icon + '"/>'
           });
-          */
-        }
-			  			
-			  
-		    //$('#steps_table').append('<tr><td>' + start_location.lat() + '</td></tr>');
-		    //console.log(steps[si].start_location);
-			//}
-		  }
-		  //console.log(route.legs[j]);
-		}
-	  }
-	  //console.log(response.routes);
-      directionsDisplay.setDirections(response);
+          infowindow.open(map, marker);
+        });
+      });
     }
-  });
-}
+  }
 
-function clearSteps() {
-  $('#steps_table').remove();
-}
+  function calcRoute() {
+    var start = startLocation;
+    var end = endLocation;
+    var distanceBetweenPoints = $("#distanceBetweenPoints").val();
+    var request = {
+      origin: start,
+      destination: end,
+      travelMode: google.maps.TravelMode.DRIVING
+    };
+    directionsService.route(request, function (response, status) {
+      if (status == google.maps.DirectionsStatus.OK) {
+        var previousLocation = null;
+        clearSteps();
+        $('#steps').append('<ul id="steps_table" class="list-group"></ul');
+        for (var i = 0; i < response.routes.length; i++) {
+          var route = response.routes[i];
+          document.getElementById('copyright_notice').innerHTML = route.copyrights;
+          //console.log(route.legs);
+          for (var j = 0; j < route.legs.length; j++) {
+            var steps = route.legs[j].steps;
+            for (var si = 0; si < steps.length; si++) {
+              //console.log(steps[si]);
+              var start_location = steps[si].start_location;
+              //console.log(steps[si].path);
+              for (var sx = 0; sx < steps[si].path.length; sx++) {
+                if (previousLocation === null || getDistance(previousLocation, steps[si].path[sx]) > 1000 * distanceBetweenPoints) {
+
+                  (function (loc, position) {
+                    addRoutePoint(loc);
+                    //console.log(start_location.lng() + ", " + start_location.lat() + " --> " + previousLocation);
+                    $.getJSON('http://api.openweathermap.org/data/2.5/find?lat=' +
+                        loc.lat() + '&lon=' + loc.lng() + '', function (data) {
+
+                      var weather = data.list[0].weather[0];
+                      //console.log(weather);
 
 
+                      updateRoutePoint(position, data.list[0].name, 'http://openweathermap.org/img/w/' + weather.icon + '.png');
+                    });
+                  })(steps[si].path[sx], mutex);
+                  previousLocation = steps[si].path[sx];
+                }
+                /*
+                 new google.maps.Marker({
+                 position: steps[si].path[sx],
+                 map: map,
+                 title: 'point ' + j + si + sx
+                 });
+                 */
+              }
 
-google.maps.event.addDomListener(window, 'load', initialize);
 
-    </script>
-  </head>
-  <body>
-    <div class="navbar navbar-custom navbar-fixed-top">
-     <div class="navbar-header"><a class="navbar-brand" href="#">SafeRoute</a>
-     <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-      </a>
-    </div>
-    </div>
-    <div id="map-canvas"></div>
-    <div class="container-fluid" id="main">
-      <div class="row">
-        <div class="col-md-4" id="left">
-          <h3>Find your route</h3>
+              //$('#steps_table').append('<tr><td>' + start_location.lat() + '</td></tr>');
+              //console.log(steps[si].start_location);
+              //}
+            }
+            //console.log(route.legs[j]);
+          }
+        }
+        //console.log(response.routes);
+        directionsDisplay.setDirections(response);
+      }
+    });
+  }
+
+  function clearSteps() {
+    $('#steps_table').remove();
+  }
+
+
+  // google.maps.event.addDomListener(window, 'load', initialize);
+
+</script>
+</head>
+<body>
+<div class="navbar navbar-custom navbar-fixed-top">
+  <div class="navbar-header"><a class="navbar-brand" href="#">SafeRoute</a>
+    <span class="icon-bar"></span>
+    <span class="icon-bar"></span>
+    <span class="icon-bar"></span>
+    </a>
+  </div>
+</div>
+<div id="map-canvas"></div>
+<div class="container-fluid" id="main">
+  <div class="row">
+    <div class="col-md-4" id="left">
+      <h3>Find your route</h3>
+      <form class="form-horizontal" role="form">
+        <div class="form-group">
+          <label for="start" class="col-sm-2 control-label">Start:</label>
+          <div class="col-sm-10">
+            <input type="text" id="start" class="form-control" placeholder="Starting location" size="60">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="end" class="col-sm-2 control-label">End:</label>
+          <div class="col-sm-10">
+            <input type="text" id="end" class="form-control" placeholder="Ending location" size="60">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="distanceBetweenPoints" class="col-sm-6 control-label">Distance between points:</label>
+          <div class="col-sm-6">
+            <input type="number" id="distanceBetweenPoints" class="form-control" placeholder="Distance">
+          </div>
+        </div>
+        <h4>Special conditions</h4>
+        <div class="form-group">
+          <div class="col-sm-2 control-label"><b>Temperature</b></div>
+          <label for="temperatureMin" class="col-sm-2 control-label">below:</label>
+          <div class="col-sm-3">
+            <input type="number" id="temperatureMin" class="form-control" placeholder="Below">
+          </div>
+          <label for="temperatureMax" class="col-sm-2 control-label">above:</label>
+          <div class="col-sm-3">
+            <input type="number" id="temperatureMax" class="form-control" placeholder="Above">
+          </div>
+        </div>
+        <div class="form-group">
+          <div class="col-sm-offset-2 col-sm-5">
+            <div class="checkbox">
+              <input type="checkbox" id="snow">Snow
+            </div>
+          </div>
+          <label for="snowSize" class="col-sm-2 control-label">Size:</label>
+          <div class="col-sm-2">
+            <input type="number" id="snowSize" class="form-control">
+          </div>
+          <div class="col-sm-1 control-label">mm</div>
+        </div>
+      </form>
+      <div class="container-fluid">
+        <div class="row">
+          <div class="col-md-12">
+            <div id="copyright_notice"></div>
+          </div>
+        </div>
+
+        <div class="row">
+
+        </div>
+        <div class="row">
+          <h4>Difficult conditions:</h4>
           <div class="container-fluid">
             <div class="row">
+              <div class="col-md-6"><input type="checkbox"/> Rain</div>
+              <div class="col-md-6">Amount: <input type="number">mm</div>
+            </div>
+            <div class="row">
               <div class="col-md-12">
-                <div id="copyright_notice"></div>
+                <input type="checkbox"/> Night
               </div>
             </div>
             <div class="row">
-            
-              <input type="text" id="start" placeholder="Starting location" size="80"/>
-
-            </div>
-            <div class="row">
-              <input type="text" id="end" placeholder="Ending location" size="80"/>
-            </div>
-            <div class="row">
-              <input type="number" id="distanceBetweenPoints" placeholder="Distance in km between points"/>
-            </div>
-            <div class="row">
               <div class="col-md-12">
-                <div id="panel">
-                  <button onclick="calcRoute();" class="btn-primary">Calculate route and weather</button>
-                  <div id="steps">
-                  </div>
+                <input type="checkbox"/> Wind
               </div>
             </div>
           </div>
-          
-          
-  </div>
         </div>
-        <div class="col-md-9"></div>
-      </div>
+        <div class="row">
+          <div class="col-md-12">
+            <div id="panel">
+              <button onclick="calcRoute();" class="btn-primary">Calculate route and weather</button>
+              <div id="steps">
+              </div>
+            </div>
+          </div>
+        </div>
 
-    
-    
-    
+
+      </div>
     </div>
-   
-  </body>
+    <div class="col-md-9"></div>
+  </div>
+
+
+</div>
+
+</body>
 </html>
