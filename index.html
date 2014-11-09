@@ -50,9 +50,9 @@
   }
 
   #map-canvas {
-    width: 66.66666%;
-    height: calc(100% - 0);
-    position: absolute;
+    width: 100%;
+    height: 800px;
+    /* position: absolute; */
     right: 16px;
     top: 50px;
     bottom: 0;
@@ -67,6 +67,8 @@
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+<script src="js/open_weather_map.js"></script>
+<script src="js/Chart.min.js"></script>
 <script>
   var directionsDisplay;
   var directionsService = new google.maps.DirectionsService();
@@ -124,28 +126,44 @@
     mutex++;
   }
 
-  function updateRoutePoint(pos, name, icon) {
+  function updateRoutePoint(pos, cond) {
     var routePoint = routePoints[pos];
-    routePoint.name = name;
-    routePoint.icon = icon;
+    routePoint.cond = cond;
     mutex--;
 
     if (mutex === 0) {
       console.log('mutex 0');
+      var chartLabels = [];
+      var dataset = [];
       $.each(routePoints, function (index, routePoint) {
-        $('#steps_table').append('<li class="list-group-item">' + routePoint.name + ' <img src="' + routePoint.icon + '"/></li>');
+        $('#steps_table').append('<li class="list-group-item">'
+            + routePoint.cond.name
+            + ' ' + Math.round(routePoint.cond.temp - 273) + ' C '
+            + ' <img src="' + routePoint.cond.icon + '"/></li>');
         var marker = new google.maps.Marker({
           position: routePoint.location,
           map: map,
-          title: routePoint.name
+          title: routePoint.cond.name
         });
         google.maps.event.addListener(marker, 'click', function () {
           var infowindow = new google.maps.InfoWindow({
-            content: "<b>" + routePoint.name + '</b> <img src="' + routePoint.icon + '"/>'
+            content: "<b>" + routePoint.cond.name + '</b> <img src="' + routePoint.cond.icon + '"/>'
           });
           infowindow.open(map, marker);
         });
+        chartLabels.push(routePoint.cond.name);
+        dataset.push(routePoint.cond.temp - 273);
       });
+
+      var ctx = document.getElementById("tempChart").getContext("2d");
+      var chartData = {
+        labels: chartLabels,
+        datasets: [{label: 'Temperature', data: dataset}]
+      }
+      var chartOptions = {
+        datasetFill: false
+      };
+      var tempChart = new Chart(ctx).Line(chartData, chartOptions);
     }
   }
 
@@ -153,11 +171,17 @@
     var start = startLocation;
     var end = endLocation;
     var distanceBetweenPoints = $("#distanceBetweenPoints").val();
+    if (distanceBetweenPoints === undefined || distanceBetweenPoints === 0) {
+      distanceBetweenPoints = 50;
+    }
     var request = {
       origin: start,
       destination: end,
       travelMode: google.maps.TravelMode.DRIVING
     };
+
+    var weatherApi = new OpenWeatherMapApi();
+
     directionsService.route(request, function (response, status) {
       if (status == google.maps.DirectionsStatus.OK) {
         var previousLocation = null;
@@ -166,49 +190,25 @@
         for (var i = 0; i < response.routes.length; i++) {
           var route = response.routes[i];
           document.getElementById('copyright_notice').innerHTML = route.copyrights;
-          //console.log(route.legs);
           for (var j = 0; j < route.legs.length; j++) {
             var steps = route.legs[j].steps;
             for (var si = 0; si < steps.length; si++) {
-              //console.log(steps[si]);
               var start_location = steps[si].start_location;
-              //console.log(steps[si].path);
               for (var sx = 0; sx < steps[si].path.length; sx++) {
                 if (previousLocation === null || getDistance(previousLocation, steps[si].path[sx]) > 1000 * distanceBetweenPoints) {
 
                   (function (loc, position) {
                     addRoutePoint(loc);
-                    //console.log(start_location.lng() + ", " + start_location.lat() + " --> " + previousLocation);
-                    $.getJSON('http://api.openweathermap.org/data/2.5/find?lat=' +
-                        loc.lat() + '&lon=' + loc.lng() + '', function (data) {
-
-                      var weather = data.list[0].weather[0];
-                      //console.log(weather);
-
-
-                      updateRoutePoint(position, data.list[0].name, 'http://openweathermap.org/img/w/' + weather.icon + '.png');
+                    weatherApi.getCurrentWeatherConditions(loc.lat(), loc.lng(), function(cond) {
+                      updateRoutePoint(position, cond);
                     });
                   })(steps[si].path[sx], mutex);
                   previousLocation = steps[si].path[sx];
                 }
-                /*
-                 new google.maps.Marker({
-                 position: steps[si].path[sx],
-                 map: map,
-                 title: 'point ' + j + si + sx
-                 });
-                 */
               }
-
-
-              //$('#steps_table').append('<tr><td>' + start_location.lat() + '</td></tr>');
-              //console.log(steps[si].start_location);
-              //}
             }
-            //console.log(route.legs[j]);
           }
         }
-        //console.log(response.routes);
         directionsDisplay.setDirections(response);
       }
     });
@@ -219,7 +219,7 @@
   }
 
 
-  // google.maps.event.addDomListener(window, 'load', initialize);
+  google.maps.event.addDomListener(window, 'load', initialize);
 
 </script>
 </head>
@@ -232,102 +232,147 @@
     </a>
   </div>
 </div>
-<div id="map-canvas"></div>
-<div class="container-fluid" id="main">
+<div class="container-fluid">
   <div class="row">
-    <div class="col-md-4" id="left">
-      <h3>Find your route</h3>
-      <form class="form-horizontal" role="form">
-        <div class="form-group">
-          <label for="start" class="col-sm-2 control-label">Start:</label>
-          <div class="col-sm-10">
-            <input type="text" id="start" class="form-control" placeholder="Starting location" size="60">
-          </div>
-        </div>
-        <div class="form-group">
-          <label for="end" class="col-sm-2 control-label">End:</label>
-          <div class="col-sm-10">
-            <input type="text" id="end" class="form-control" placeholder="Ending location" size="60">
-          </div>
-        </div>
-        <div class="form-group">
-          <label for="distanceBetweenPoints" class="col-sm-6 control-label">Distance between points:</label>
-          <div class="col-sm-6">
-            <input type="number" id="distanceBetweenPoints" class="form-control" placeholder="Distance">
-          </div>
-        </div>
-        <h4>Special conditions</h4>
-        <div class="form-group">
-          <div class="col-sm-2 control-label"><b>Temperature</b></div>
-          <label for="temperatureMin" class="col-sm-2 control-label">below:</label>
-          <div class="col-sm-3">
-            <input type="number" id="temperatureMin" class="form-control" placeholder="Below">
-          </div>
-          <label for="temperatureMax" class="col-sm-2 control-label">above:</label>
-          <div class="col-sm-3">
-            <input type="number" id="temperatureMax" class="form-control" placeholder="Above">
-          </div>
-        </div>
-        <div class="form-group">
-          <div class="col-sm-offset-2 col-sm-5">
-            <div class="checkbox">
-              <input type="checkbox" id="snow">Snow
-            </div>
-          </div>
-          <label for="snowSize" class="col-sm-2 control-label">Size:</label>
-          <div class="col-sm-2">
-            <input type="number" id="snowSize" class="form-control">
-          </div>
-          <div class="col-sm-1 control-label">mm</div>
-        </div>
-      </form>
-      <div class="container-fluid">
+    <div class="col-md-4">
+      <div class="container-fluid" id="main">
         <div class="row">
-          <div class="col-md-12">
-            <div id="copyright_notice"></div>
-          </div>
-        </div>
+          <div class="col-md-12" id="left">
+            <h3>Find your route</h3>
 
-        <div class="row">
+            <form class="form-horizontal" role="form">
+              <div class="form-group">
+                <div class="col-sm-2 control-label">For</div>
+                <div class="col-sm-2">
+                  <div class="checkbox">
+                    <input type="checkbox">Now
+                  </div>
 
-        </div>
-        <div class="row">
-          <h4>Difficult conditions:</h4>
-          <div class="container-fluid">
-            <div class="row">
-              <div class="col-md-6"><input type="checkbox"/> Rain</div>
-              <div class="col-md-6">Amount: <input type="number">mm</div>
-            </div>
-            <div class="row">
-              <div class="col-md-12">
-                <input type="checkbox"/> Night
+                </div>
+
               </div>
-            </div>
-            <div class="row">
-              <div class="col-md-12">
-                <input type="checkbox"/> Wind
+              <div class="form-group">
+                <label for="start" class="col-sm-2 control-label">Start:</label>
+
+                <div class="col-sm-10">
+                  <input type="text" id="start" class="form-control" placeholder="Starting location" size="60">
+                </div>
               </div>
+              <div class="form-group">
+                <label for="end" class="col-sm-2 control-label">End:</label>
+
+                <div class="col-sm-10">
+                  <input type="text" id="end" class="form-control" placeholder="Ending location" size="60">
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="distanceBetweenPoints" class="col-sm-6 control-label">Distance between points:</label>
+
+                <div class="col-sm-6">
+                  <input type="number" id="distanceBetweenPoints" class="form-control" placeholder="Distance">
+                </div>
+              </div>
+              <h4>Special conditions</h4>
+
+              <div class="form-group">
+                <div class="col-sm-2 control-label"><b>Temperature</b></div>
+                <label for="temperatureMin" class="col-sm-2 control-label">below:</label>
+
+                <div class="col-sm-3">
+                  <input type="number" id="temperatureMin" class="form-control" placeholder="Below">
+                </div>
+                <label for="temperatureMax" class="col-sm-2 control-label">above:</label>
+
+                <div class="col-sm-3">
+                  <input type="number" id="temperatureMax" class="form-control" placeholder="Above">
+                </div>
+              </div>
+              <div class="form-group">
+                <div class="col-sm-offset-2 col-sm-5">
+                  <div class="checkbox">
+                    <input type="checkbox" id="snow">Snow
+                  </div>
+                </div>
+                <label for="snowSize" class="col-sm-2 control-label">Size:</label>
+
+                <div class="col-sm-2">
+                  <input type="number" id="snowSize" class="form-control">
+                </div>
+                <div class="col-sm-1 control-label">mm</div>
+              </div>
+            </form>
+            <div class="container-fluid">
+              <div class="row">
+                <div class="col-md-12">
+                  <div id="copyright_notice"></div>
+                </div>
+              </div>
+
+              <div class="row">
+
+              </div>
+              <div class="row">
+                <h4>Difficult conditions:</h4>
+
+                <div class="container-fluid">
+                  <div class="row">
+                    <div class="col-md-6"><input type="checkbox"/> Rain</div>
+                    <div class="col-md-6">Amount: <input type="number">mm</div>
+                  </div>
+                  <div class="row">
+                    <div class="col-md-12">
+                      <input type="checkbox"/> Night
+                    </div>
+                  </div>
+                  <div class="row">
+                    <div class="col-md-12">
+                      <input type="checkbox"/> Wind
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-12">
+                  <div id="panel">
+                    <button onclick="calcRoute();" class="btn-primary">Calculate route and weather</button>
+                    <div id="steps">
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+
             </div>
           </div>
-        </div>
-        <div class="row">
-          <div class="col-md-12">
-            <div id="panel">
-              <button onclick="calcRoute();" class="btn-primary">Calculate route and weather</button>
-              <div id="steps">
-              </div>
-            </div>
-          </div>
+          <!--<div class="col-md-9"></div>  -->
         </div>
 
 
       </div>
+
     </div>
-    <div class="col-md-9"></div>
+    <div class="col-md-8">
+      <div id="aaa">
+        <ul class="nav nav-tabs" role="tablist">
+          <li role="presentation" class="active"><a href="#map" role="tab" data-toggle="tab">Map</a></li>
+          <li role="presentation"><a href="#charts" role="tab" data-toggle="tab">Charts</a></li>
+        </ul>
+
+        <div class="tab-content">
+          <div role="tabpanel" class="tab-pane active" id="map">
+            <div id="map-canvas"></div>
+          </div>
+          <div role="tabpanel" class="tab-pane" id="charts">
+            <div id="forChart">
+              <canvas id="tempChart" width="700" height="400"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
-
-
 </div>
+
 
 </body>
 </html>
