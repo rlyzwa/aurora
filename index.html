@@ -183,18 +183,30 @@
     var weatherApi = new OpenWeatherMapApi();
 
     directionsService.route(request, function (response, status) {
+
+      var max = 0;
+      var dist = 0;
+      var avgSpeed = 0;
       if (status == google.maps.DirectionsStatus.OK) {
         var previousLocation = null;
         clearSteps();
-        $('#steps').append('<ul id="steps_table" class="list-group"></ul');
+        $('#steps').append('<ul id="steps_table" class="list-group"></ul>');
         for (var i = 0; i < response.routes.length; i++) {
           var route = response.routes[i];
           document.getElementById('copyright_notice').innerHTML = route.copyrights;
           for (var j = 0; j < route.legs.length; j++) {
             var steps = route.legs[j].steps;
+
             for (var si = 0; si < steps.length; si++) {
+              console.log(steps[si]);
+              avgSpeed = steps[si].distance.value / steps[si].duration.value; // m/s
+              max = 0;
               var start_location = steps[si].start_location;
               for (var sx = 0; sx < steps[si].path.length; sx++) {
+                if (sx > 0) {
+                  var dist = getDistance(steps[si].path[sx - 1], steps[si].path[sx]);
+                  if (max < dist) max = dist;
+                }
                 if (previousLocation === null || getDistance(previousLocation, steps[si].path[sx]) > 1000 * distanceBetweenPoints) {
 
                   (function (loc, position) {
@@ -206,6 +218,7 @@
                   previousLocation = steps[si].path[sx];
                 }
               }
+              console.log('max = ' + max + ' m, avg speed: ' + avgSpeed + ', time taken: ' + Math.round(max / avgSpeed) + ' s');
             }
           }
         }
@@ -247,7 +260,9 @@
                   <div class="checkbox">
                     <input type="checkbox">Now
                   </div>
-
+                </div>
+                <div class="col-sm-2">
+                  <input type="date" id="dateFor">
                 </div>
 
               </div>
