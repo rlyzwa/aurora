@@ -1,9 +1,7 @@
 var WeatherApi = function() {
-  this.getCurrentWeatherConditions = function(lat, lon, onSuccess) {
 
-  };
 
-  this.getWeatherAt = function(lat, lon, dt, onSuccess) {
+  this.getWeatherConditions = function(lat, lon, dt, onSuccess) {
 
   }
 
