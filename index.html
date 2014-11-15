@@ -126,19 +126,24 @@
     mutex++;
   }
 
-  function updateRoutePoint(pos, cond) {
+  function updateRoutePoint(pos, cond, timeSpent) {
     var routePoint = routePoints[pos];
     routePoint.cond = cond;
+    routePoint.timeSpent = timeSpent;
     mutex--;
 
     if (mutex === 0) {
       console.log('mutex 0');
       var chartLabels = [];
-      var dataset = [];
+      var tempDataset = [];
+      var rainDataset = [];
       $.each(routePoints, function (index, routePoint) {
         $('#steps_table').append('<li class="list-group-item">'
             + routePoint.cond.name
             + ' ' + Math.round(routePoint.cond.temp - 273) + ' C '
+            + ' ' + (Math.round(routePoint.timeSpent * 100 / 3600) / 100) + ' h '
+            + ' as for ' + routePoint.cond.asFor + ' '
+            + ' id: ' + routePoint.cond.id + ' '
             + ' <img src="' + routePoint.cond.icon + '"/></li>');
         var marker = new google.maps.Marker({
           position: routePoint.location,
@@ -152,18 +157,28 @@
           infowindow.open(map, marker);
         });
         chartLabels.push(routePoint.cond.name);
-        dataset.push(routePoint.cond.temp - 273);
+        tempDataset.push(routePoint.cond.temp - 273);
+        rainDataset.push(routePoint.cond.rain);
       });
 
       var ctx = document.getElementById("tempChart").getContext("2d");
-      var chartData = {
+      var tempChartData = {
         labels: chartLabels,
-        datasets: [{label: 'Temperature', data: dataset}]
-      }
+        datasets: [{label: 'Temperature', data: tempDataset}]
+      };
       var chartOptions = {
         datasetFill: false
       };
-      var tempChart = new Chart(ctx).Line(chartData, chartOptions);
+      var tempChart = new Chart(ctx).Line(tempChartData, chartOptions);
+
+      ctx = document.getElementById('rainChart').getContext("2d");
+      var rainChartData = {
+        labels: chartLabels,
+        datasets: [{label: 'Rain', data: rainDataset}]
+      };
+
+      var rainChart = new Chart(ctx).Bar(rainChartData, chartOptions);
+
     }
   }
 
@@ -171,7 +186,7 @@
     var start = startLocation;
     var end = endLocation;
     var distanceBetweenPoints = $("#distanceBetweenPoints").val();
-    if (distanceBetweenPoints === undefined || distanceBetweenPoints === 0) {
+    if (distanceBetweenPoints === undefined || distanceBetweenPoints === null ||  distanceBetweenPoints === 0) {
       distanceBetweenPoints = 50;
     }
     var request = {
@@ -184,9 +199,13 @@
 
     directionsService.route(request, function (response, status) {
 
-      var max = 0;
-      var dist = 0;
       var avgSpeed = 0;
+      var timeSpent = 0;
+      var dist = 0;
+      var totalTimeSpent = 0;
+      var startDate = new Date();
+      var stp = null;
+      var secsStartDate = startDate.getTime() / 1000;
       if (status == google.maps.DirectionsStatus.OK) {
         var previousLocation = null;
         clearSteps();
@@ -198,27 +217,30 @@
             var steps = route.legs[j].steps;
 
             for (var si = 0; si < steps.length; si++) {
-              console.log(steps[si]);
+              stp = steps[si];
+
               avgSpeed = steps[si].distance.value / steps[si].duration.value; // m/s
-              max = 0;
+
               var start_location = steps[si].start_location;
               for (var sx = 0; sx < steps[si].path.length; sx++) {
                 if (sx > 0) {
-                  var dist = getDistance(steps[si].path[sx - 1], steps[si].path[sx]);
-                  if (max < dist) max = dist;
+                  dist = getDistance(steps[si].path[sx - 1], steps[si].path[sx]);
+                  timeSpent = dist / avgSpeed;
+                  totalTimeSpent += timeSpent;
                 }
                 if (previousLocation === null || getDistance(previousLocation, steps[si].path[sx]) > 1000 * distanceBetweenPoints) {
 
-                  (function (loc, position) {
+                  (function (loc, position, totalTimeSpent) {
                     addRoutePoint(loc);
-                    weatherApi.getCurrentWeatherConditions(loc.lat(), loc.lng(), function(cond) {
-                      updateRoutePoint(position, cond);
+                    weatherApi.getWeatherConditions(loc.lat(), loc.lng(), new Date((secsStartDate + totalTimeSpent) * 1000), function(cond) {
+                      updateRoutePoint(position, cond, totalTimeSpent);
                     });
-                  })(steps[si].path[sx], mutex);
+                  })(steps[si].path[sx], mutex, totalTimeSpent);
                   previousLocation = steps[si].path[sx];
+                  //totalTimeSpent = 0;
                 }
               }
-              console.log('max = ' + max + ' m, avg speed: ' + avgSpeed + ', time taken: ' + Math.round(max / avgSpeed) + ' s');
+              console.log(stp.travelMode + ' ' + stp.distance.text + ' ' + stp.duration.text + ' ' + totalTimeSpent);
             }
           }
         }
@@ -380,7 +402,9 @@
           <div role="tabpanel" class="tab-pane" id="charts">
             <div id="forChart">
               <canvas id="tempChart" width="700" height="400"></canvas>
+              <canvas id="rainChart" width="700" height="400"></canvas>
             </div>
+
           </div>
         </div>
       </div>
